@@ -3,6 +3,8 @@ var lastURL = null;
 
 document.addEventListener('DOMContentLoaded', function() {
 
+    loadData();
+
     chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
 	getTabInfo();
     });
@@ -10,7 +12,22 @@ document.addEventListener('DOMContentLoaded', function() {
     chrome.tabs.onActiveChanged.addListener(function(tabId, selectInfo) {
 	getTabInfo();
     });
+
+    chrome.tabs.onRemoved.addListener(function() {
+	saveData();
+    });
+
 });
+
+function printData() {
+    console.log('Here are all values till now\n');
+    // for(key in recordsDictionary){
+    // 	var stats = recordsDictionary[key];
+    // 	console.log('URL: ' + key + ' Data: ' + JSON.stringify(stats, null, 2));
+    // }
+    console.log(JSON.stringify(recordsDictionary, null, 2));
+    console.log('----------------------------\n');    
+}
 
 function processEvent(url) {
     if (lastURL != null) {
@@ -33,13 +50,7 @@ function processEvent(url) {
 	stats['timestamp'] = new Date().valueOf();
 	recordsDictionary[url] = stats;
     }
-    
-    console.log('Here are all values till now\n');
-    for(key in recordsDictionary){
-	var stats = recordsDictionary[key];
-	console.log('URL: ' + key + ' Data: ' + JSON.stringify(stats));
-    }
-    console.log('----------------------------\n');
+    printData();
     lastURL = url;
 }
 
@@ -96,4 +107,22 @@ function extractDomain(url) {
     domain = domain.split(':')[0];
 
     return domain;
+}
+
+/* Use chrome.storage.sync.* in case you want to sync all data */
+function saveData() {
+//    chrome.storage.local.clear();
+    chrome.storage.local.set({'records': recordsDictionary}, function() {
+        // Notify that we saved.
+	printData();
+	console.log('Data saved');
+    });
+}
+
+function loadData() {
+    chrome.storage.local.get('records', function(items) {
+	recordsDictionary = items.records;
+	console.log('Data loaded');
+	printData();
+    });
 }
